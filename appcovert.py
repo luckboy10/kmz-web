@@ -137,7 +137,7 @@ with col2:
     # Lu bisa ganti link gambar di atribut src="..." di bawah ini sama link foto/logo lu sendiri
     st.markdown("""
         <div style='text-align: center;'>
-            <img src='https://cdn-icons-png.flaticon.com/512/854/854878.png' width='120' style='margin-bottom: -10px;'>
+            <img src='https://share.google/zBR6gSn2lTbWmBzAW' width='120' style='margin-bottom: -10px;'>
         </div>
     """, unsafe_allow_html=True)
     
