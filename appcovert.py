@@ -125,8 +125,140 @@ st.markdown("""
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-    st.title("📍 Ubah KMZ Loh Jdi EXcel jing!!!!")
+    st.title("📍 Geodata Extractor Pro")
     st.markdown("<p style='text-align:center;'>Ubah kumpulan file KMZ/KML lu menjadi tabel Excel secara otomatis. Support Batch Processing.</p>", unsafe_allow_html=True)
     st.markdown("---")
     
-  uploaded_files = st.file_uploader("Seret dan Lepaskan file di sini (Support multiple files)", type=['kmz', 'kml'], accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Seret dan Lepaskan file di sini (Support multiple files)", type=['kmz', 'kml'], accept_multiple_files=True)
+
+# Fungsi pemrosesan file (Tidak diubah, murni backend)
+def process_single_file(file):
+    try:
+        filename = file.name.lower()
+        kml_data = None
+        
+        if filename.endswith('.kmz'):
+            kmz = zipfile.ZipFile(file, 'r')
+            kml_filename = [name for name in kmz.namelist() if name.endswith('.kml')][0]
+            kml_data = kmz.open(kml_filename, 'r').read()
+        elif filename.endswith('.kml'):
+            kml_data = file.read()
+            
+        soup = BeautifulSoup(kml_data, 'xml')
+        data_list = []
+        
+        placemarks = soup.find_all('Placemark')
+        for placemark in placemarks:
+            row_data = {}
+            name_tag = placemark.find('name')
+            if name_tag: row_data['Nama Placemark'] = name_tag.text.strip()
+                
+            point_tag = placemark.find('Point')
+            if point_tag:
+                coords_tag = point_tag.find('coordinates')
+                if coords_tag:
+                    coords = coords_tag.text.strip().split(',')
+                    if len(coords) >= 2:
+                        row_data['Longitude (Asli)'] = float(coords[0].strip())
+                        row_data['Latitude (Asli)'] = float(coords[1].strip())
+            
+            extended_data = placemark.find('ExtendedData')
+            if extended_data:
+                for data in extended_data.find_all('Data'):
+                    name = data.get('name')
+                    value = data.find('value')
+                    if name and value: row_data[name] = value.text.strip()
+                for simple_data in extended_data.find_all('SimpleData'):
+                    name = simple_data.get('name')
+                    if name: row_data[name] = simple_data.text.strip()
+            
+            desc_tag = placemark.find('description')
+            if desc_tag and desc_tag.text:
+                html_soup = BeautifulSoup(desc_tag.text, 'html.parser')
+                tables = html_soup.find_all('table')
+                if tables:
+                    for table in tables:
+                        for tr in table.find_all('tr'):
+                            cells = tr.find_all(['td', 'th'])
+                            if len(cells) >= 2:
+                                key = cells[0].text.strip().replace(':', '')
+                                val = cells[1].text.strip()
+                                if key.lower() in ['lat', 'latitude']: key = 'Latitude (Tabel)'
+                                elif key.lower() in ['long', 'longitude']: key = 'Longitude (Tabel)'
+                                row_data[key] = val
+                                
+            data_list.append(row_data)
+        
+        if not data_list: return None, f"⚠️ Tidak ada data Placemark di {file.name}"
+            
+        df = pd.DataFrame(data_list)
+        cols = df.columns.tolist()
+        front_cols = ['Nama Placemark', 'Latitude (Asli)', 'Longitude (Asli)']
+        front_cols = [c for c in front_cols if c in cols]
+        other_cols = [c for c in cols if c not in front_cols]
+        return df[front_cols + other_cols], None
+    except Exception as e:
+        return None, f"❌ Error di {file.name}: {e}"
+
+# Eksekusi kalau file di-upload
+if uploaded_files:
+    st.markdown("<h3 style='text-align:center;'>📊 Hasil Proses</h3>", unsafe_allow_html=True)
+    with st.spinner(f"Sedang meracik {len(uploaded_files)} file..."):
+        
+        if len(uploaded_files) == 1:
+            file = uploaded_files[0]
+            df, error = process_single_file(file)
+            
+            if error: st.error(error)
+            else:
+                st.success(f"✅ Mantap! Ketemu {len(df)} titik dari {file.name}")
+                st.dataframe(df, height=250, use_container_width=True)
+                
+                base_name = file.name.rsplit('.', 1)[0]
+                export_name = f"{base_name}_extracted.xlsx"
+                
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False)
+                
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+                with col_btn2:
+                    st.download_button(
+                        label=f"📥 DOWNLOAD {export_name.upper()}",
+                        data=output.getvalue(),
+                        file_name=export_name,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
+        else:
+            zip_buffer = io.BytesIO()
+            berhasil_count, gagal_count = 0, 0
+            
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for file in uploaded_files:
+                    df, error = process_single_file(file)
+                    if error:
+                        st.error(error)
+                        gagal_count += 1
+                    else:
+                        base_name = file.name.rsplit('.', 1)[0]
+                        export_name = f"{base_name}_extracted.xlsx"
+                        excel_buffer = io.BytesIO()
+                        with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
+                            df.to_excel(writer, index=False)
+                        zip_file.writestr(export_name, excel_buffer.getvalue())
+                        berhasil_count += 1
+                        
+            if berhasil_count > 0:
+                st.success(f"✅ Selesai Cuy! {berhasil_count} file berhasil dibungkus ke dalam 1 ZIP.")
+                if gagal_count > 0: st.warning(f"⚠️ Ada {gagal_count} file gagal.")
+                
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+                with col_btn2:
+                    st.download_button(
+                        label="📦 DOWNLOAD SEMUA (ZIP)",
+                        data=zip_buffer.getvalue(),
+                        file_name="Geodata_Batch_Export.zip",
+                        mime="application/zip"
+                    )
+            else:
+                st.error("❌ Semua file gagal diproses.")
