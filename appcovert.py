@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 import io
 
 # 1. BIKIN LAYOUT JADI LEBAR
-st.set_page_config(page_title="Geodata Extractor", page_icon="📍", layout="wide")
+st.set_page_config(page_title="KMZ TO EXCEL", page_icon="😡", layout="wide")
 
 # 2. INJECT CSS (TAMBAH FONT BARU & FIX WARNA)
 st.markdown("""
