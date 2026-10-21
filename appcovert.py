@@ -4,12 +4,93 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import io
 
-st.set_page_config(page_title="KML/KMZ to Excel", page_icon="🌍", layout="centered")
+# 1. BIKIN LAYOUT JADI LEBAR (WIDE)
+st.set_page_config(page_title="Geodata Extractor", page_icon="📍", layout="wide")
 
-st.title("🌍 KML/KMZ to Excel Converter (Batch Support)")
-st.write("Upload file KMZ/KML di bawah ini. Lu bisa upload **banyak file sekaligus** (tinggal block/drag banyak file). Jika lebih dari 1 file, hasil otomatis di-ZIP.")
+# 2. INJECT CUSTOM CSS BIAR TAMPILAN KEREN
+st.markdown("""
+    <style>
+    /* Ubah background utama (Dark Theme yang elegan) */
+    .stApp {
+        background-color: #0e1117;
+        color: #fafafa;
+    }
+    
+    /* Ubah tampilan header judul dengan efek gradasi */
+    h1 {
+        background: -webkit-linear-gradient(#4facfe, #00f2fe);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 800;
+        text-align: center;
+        padding-bottom: 20px;
+    }
+    
+    /* Bikin teks deskripsi di tengah */
+    .stMarkdown p {
+        text-align: center;
+        font-size: 1.1rem;
+        color: #b0bec5;
+    }
 
-# Fungsi inti untuk memproses satu file (biar kodenya nggak berulang)
+    /* Percantik area kotak Uploader */
+    [data-testid="stFileUploadDropzone"] {
+        border: 2px dashed #4facfe !important;
+        border-radius: 15px !important;
+        background-color: rgba(79, 172, 254, 0.05) !important;
+        padding: 30px !important;
+        transition: all 0.3s ease;
+    }
+    [data-testid="stFileUploadDropzone"]:hover {
+        background-color: rgba(79, 172, 254, 0.15) !important;
+        border-color: #00f2fe !important;
+    }
+    
+    /* Tampilan tabel dataframe yang lebih modern */
+    [data-testid="stDataFrame"] {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #262730;
+    }
+    
+    /* Ubah Tombol Download jadi Keren */
+    div.stDownloadButton > button {
+        background: linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%);
+        color: #000000 !important;
+        border-radius: 30px;
+        border: none;
+        padding: 10px 25px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px rgba(0, 201, 255, 0.3);
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-top: 15px;
+    }
+    div.stDownloadButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 201, 255, 0.5);
+    }
+    
+    /* Sembunyiin menu Streamlit di pojok kanan & footer */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+""", unsafe_allow_html=True)
+
+# Layout: Bikin 3 kolom biar uploader-nya nggak selebar layar (taruh di tengah)
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    st.title("📍 ngubah kmz jadi excel jing")
+    st.write("Ubah kumpulan file KMZ/KML lu menjadi tabel Excel secara otomatis. Support Batch Processing (Banyak File).")
+    st.markdown("---")
+    
+    uploaded_files = st.file_uploader("Seret dan Lepaskan file di sini (Support multiple files)", type=['kmz', 'kml'], accept_multiple_files=True)
+
+# Fungsi inti untuk memproses satu file
 def process_single_file(file):
     try:
         filename = file.name.lower()
@@ -77,7 +158,7 @@ def process_single_file(file):
             data_list.append(row_data)
         
         if not data_list:
-            return None, f"Tidak ada data Placemark di {file.name}"
+            return None, f"⚠️ Tidak ada data Placemark di {file.name}"
             
         df = pd.DataFrame(data_list)
         cols = df.columns.tolist()
@@ -88,17 +169,14 @@ def process_single_file(file):
         
         return df, None
     except Exception as e:
-        return None, f"Error di {file.name}: {e}"
+        return None, f"❌ Error di {file.name}: {e}"
 
-# --- Uploader File (Ditambah accept_multiple_files=True) ---
-uploaded_files = st.file_uploader("Pilih file (Bisa pilih/blok lebih dari 1 file)", type=['kmz', 'kml'], accept_multiple_files=True)
-
+# Proses Data
 if uploaded_files:
-    with st.spinner(f"Sedang memproses {len(uploaded_files)} file..."):
+    st.markdown("### 📊 Hasil Proses")
+    with st.spinner(f"Sedang meracik {len(uploaded_files)} file untuk lu..."):
         
-        # ----------------------------------------------------
-        # JIKA CUMA 1 FILE (Otomatis download Excel langsung)
-        # ----------------------------------------------------
+        # JIKA CUMA 1 FILE
         if len(uploaded_files) == 1:
             file = uploaded_files[0]
             df, error = process_single_file(file)
@@ -106,45 +184,46 @@ if uploaded_files:
             if error:
                 st.error(error)
             else:
-                st.success(f"Sukses! Berhasil mengekstrak {len(df)} titik dari file {file.name}")
-                st.dataframe(df.head())
+                st.success(f"✅ Mantap! Ketemu {len(df)} titik koordinat dari file **{file.name}**")
+                
+                # Biar tabelnya ga kepanjangan di layar, kita batasin tingginya
+                st.dataframe(df, height=250, use_container_width=True)
                 
                 base_name = file.name.rsplit('.', 1)[0]
-                export_name = f"{base_name}_export_excel.xlsx"
+                export_name = f"{base_name}_extracted.xlsx"
                 
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
                     df.to_excel(writer, index=False)
                 excel_data = output.getvalue()
                 
-                st.download_button(
-                    label=f"📥 Download {export_name}",
-                    data=excel_data,
-                    file_name=export_name,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+                # Taruh tombol di tengah
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+                with col_btn2:
+                    st.download_button(
+                        label=f"📥 DOWNLOAD {export_name.upper()}",
+                        data=excel_data,
+                        file_name=export_name,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
         
-        # ----------------------------------------------------
-        # JIKA MULTIPLE FILE (Otomatis masukin ke ZIP)
-        # ----------------------------------------------------
+        # JIKA MULTIPLE FILE (Batch ZIP)
         else:
             zip_buffer = io.BytesIO()
             berhasil_count = 0
             gagal_count = 0
             
-            # Buat file ZIP baru di memori
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for file in uploaded_files:
                     df, error = process_single_file(file)
                     
                     if error:
-                        st.warning(error)
+                        st.error(error)
                         gagal_count += 1
                     else:
                         base_name = file.name.rsplit('.', 1)[0]
-                        export_name = f"{base_name}_export_excel.xlsx"
+                        export_name = f"{base_name}_extracted.xlsx"
                         
-                        # Tulis dataframe ke Excel di memori, lalu masukin ke dalam ZIP
                         excel_buffer = io.BytesIO()
                         with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
                             df.to_excel(writer, index=False)
@@ -152,16 +231,17 @@ if uploaded_files:
                         berhasil_count += 1
                         
             if berhasil_count > 0:
-                st.success(f"Selesai diproses! {berhasil_count} file berhasil di-convert ke Excel (Tersimpan di dalam ZIP).")
+                st.success(f"✅ Selesai Cuy! {berhasil_count} file berhasil dibungkus ke dalam 1 ZIP.")
                 if gagal_count > 0:
-                    st.warning(f"Ada {gagal_count} file yang gagal atau kosong.")
+                    st.warning(f"⚠️ Ada {gagal_count} file yang gagal diekstrak.")
                 
-                # Tombol download ZIP
-                st.download_button(
-                    label="📦 Download Semua Hasil (Format ZIP)",
-                    data=zip_buffer.getvalue(),
-                    file_name="Hasil_Export_KMZ_Batch.zip",
-                    mime="application/zip"
-                )
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
+                with col_btn2:
+                    st.download_button(
+                        label="📦 DOWNLOAD SEMUA (ZIP)",
+                        data=zip_buffer.getvalue(),
+                        file_name="Geodata_Batch_Export.zip",
+                        mime="application/zip"
+                    )
             else:
-                st.error("Semua file gagal diproses. Pastikan file KMZ/KML valid.")
+                st.error("❌ Waduh, semua filenya gagal diproses. cek lagi anjing bener ga file lu.")
