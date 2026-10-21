@@ -11,7 +11,7 @@ st.set_page_config(page_title="KMZ TO EXCEL", page_icon="😡", layout="wide")
 st.markdown("""
     <style>
     /* --- IMPORT FONT POPPINS DARI GOOGLE FONTS --- */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
+    @import url('https://share.google/zBR6gSn2lTbWmBzAW');
     
     /* Paksa semua teks pakai font Poppins dan warna terang */
     html, body, [class*="css"], .stApp, .stApp p, .stApp span, .stApp div, .stApp label, .stApp h3, h1 {
