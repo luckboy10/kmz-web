@@ -7,11 +7,15 @@ import io
 # 1. BIKIN LAYOUT JADI LEBAR
 st.set_page_config(page_title="Geodata Extractor", page_icon="📍", layout="wide")
 
-# 2. INJECT CSS (FIX TEKS & ANIMASI TERBANG)
+# 2. INJECT CSS (TAMBAH FONT BARU & FIX WARNA)
 st.markdown("""
     <style>
-    /* FIX TEKS: Paksa semua teks jadi warna terang biar kebaca di background gelap */
-    .stApp, .stApp p, .stApp span, .stApp div, .stApp label, .stApp h3 {
+    /* --- IMPORT FONT POPPINS DARI GOOGLE FONTS --- */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
+    
+    /* Paksa semua teks pakai font Poppins dan warna terang */
+    html, body, [class*="css"], .stApp, .stApp p, .stApp span, .stApp div, .stApp label, .stApp h3, h1 {
+        font-family: 'Poppins', sans-serif !important;
         color: #E2E8F0 !important;
     }
     
@@ -25,26 +29,40 @@ st.markdown("""
         background: -webkit-linear-gradient(#00c6ff, #0072ff);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-family: 'Segoe UI', sans-serif;
         font-weight: 800;
         text-align: center;
         padding-bottom: 10px;
     }
     
-    /* Area Uploader File */
+    /* --- FIX KOTAK UPLOADER --- */
     [data-testid="stFileUploadDropzone"] {
         border: 2px dashed #0072ff !important;
         border-radius: 15px !important;
-        background-color: rgba(0, 114, 255, 0.1) !important;
+        background-color: #1E293B !important; 
         padding: 30px !important;
         transition: all 0.3s ease;
     }
+    
+    /* Paksa teks di dalem kotak uploader jadi kelihatan */
+    [data-testid="stFileUploadDropzone"] div, 
+    [data-testid="stFileUploadDropzone"] span, 
+    [data-testid="stFileUploadDropzone"] small {
+        color: #E2E8F0 !important; 
+    }
+    
+    /* Tombol Upload (Browse files) */
+    [data-testid="stFileUploadDropzone"] button {
+        background-color: #0072ff !important;
+        color: #ffffff !important;
+        border: 1px solid #00c6ff !important;
+        border-radius: 8px !important;
+    }
+    
     [data-testid="stFileUploadDropzone"]:hover {
-        background-color: rgba(0, 114, 255, 0.2) !important;
         border-color: #00c6ff !important;
     }
     
-    /* Tombol Download Jadi Estetik */
+    /* --- Tombol Download --- */
     div.stDownloadButton > button {
         background: linear-gradient(90deg, #00C9FF 0%, #92FE9D 100%);
         color: #000 !important;
@@ -72,9 +90,9 @@ st.markdown("""
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 0; /* Taruh di belakang */
+        z-index: 0; 
         overflow: hidden;
-        pointer-events: none; /* Biar kaga ngehalangin klik */
+        pointer-events: none; 
     }
     .bg-animation span {
         position: absolute;
@@ -85,10 +103,9 @@ st.markdown("""
         animation: animate 20s linear infinite;
         bottom: -150px;
         font-size: 2rem;
-        opacity: 0.2; /* Dibuat agak transparan biar teks tetep jelas */
+        opacity: 0.2;
     }
     
-    /* Variasi posisi, ukuran, dan kecepatan per ikon */
     .bg-animation span:nth-child(1) { left: 25%; animation-delay: 0s; font-size: 3rem; }
     .bg-animation span:nth-child(2) { left: 10%; animation-delay: 2s; animation-duration: 12s; }
     .bg-animation span:nth-child(3) { left: 70%; animation-delay: 4s; }
@@ -106,32 +123,30 @@ st.markdown("""
     }
     </style>
     
-    <!-- INJEK HTML IKON TERBANG -->
     <div class="bg-animation">
-        <span>📍</span>
-        <span>🌍</span>
-        <span>📁</span>
-        <span>🗺️</span>
-        <span>📍</span>
-        <span>🛰️</span>
-        <span>🌍</span>
-        <span>📌</span>
-        <span>🗺️</span>
-        <span>🛰️</span>
+        <span>📍</span><span>🌍</span><span>📁</span><span>🗺️</span><span>📍</span>
+        <span>🛰️</span><span>🌍</span><span>📌</span><span>🗺️</span><span>🛰️</span>
     </div>
 """, unsafe_allow_html=True)
 
-# Layout: Bikin kolom biar form-nya di tengah
+# Layout Form
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-    st.title("📍 Geodata Extractor Pro")
+    # --- MENAMBAHKAN FOTO/LOGO DI TENGAH ---
+    # Lu bisa ganti link gambar di atribut src="..." di bawah ini sama link foto/logo lu sendiri
+    st.markdown("""
+        <div style='text-align: center;'>
+            <img src='https://cdn-icons-png.flaticon.com/512/854/854878.png' width='120' style='margin-bottom: -10px;'>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.title("Geodata Extractor Pro")
     st.markdown("<p style='text-align:center;'>Ubah kumpulan file KMZ/KML lu menjadi tabel Excel secara otomatis. Support Batch Processing.</p>", unsafe_allow_html=True)
     st.markdown("---")
     
     uploaded_files = st.file_uploader("Seret dan Lepaskan file di sini (Support multiple files)", type=['kmz', 'kml'], accept_multiple_files=True)
 
-# Fungsi pemrosesan file (Tidak diubah, murni backend)
 def process_single_file(file):
     try:
         filename = file.name.lower()
@@ -200,7 +215,6 @@ def process_single_file(file):
     except Exception as e:
         return None, f"❌ Error di {file.name}: {e}"
 
-# Eksekusi kalau file di-upload
 if uploaded_files:
     st.markdown("<h3 style='text-align:center;'>📊 Hasil Proses</h3>", unsafe_allow_html=True)
     with st.spinner(f"Sedang meracik {len(uploaded_files)} file..."):
