@@ -141,7 +141,7 @@ with col2:
         </div>
     """, unsafe_allow_html=True)
     
-    st.title("Geodata Extractor Pro")
+    st.title("KMZ LO AUTO JADI EXCEL")
     st.markdown("<p style='text-align:center;'>Ubah kumpulan file KMZ/KML lu menjadi tabel Excel secara otomatis. Support Batch Processing.</p>", unsafe_allow_html=True)
     st.markdown("---")
     
