@@ -5,13 +5,13 @@ from bs4 import BeautifulSoup
 import io
 
 # 1. BIKIN LAYOUT JADI LEBAR
-st.set_page_config(page_title="KMZ TO EXCEL", page_icon="😡", layout="wide")
+st.set_page_config(page_title="Kmz Jadi Excel Neh", page_icon="😡", layout="wide")
 
 # 2. INJECT CSS (TAMBAH FONT BARU & FIX WARNA)
 st.markdown("""
     <style>
     /* --- IMPORT FONT POPPINS DARI GOOGLE FONTS --- */
-    @import url('https://share.google/zBR6gSn2lTbWmBzAW');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
     
     /* Paksa semua teks pakai font Poppins dan warna terang */
     html, body, [class*="css"], .stApp, .stApp p, .stApp span, .stApp div, .stApp label, .stApp h3, h1 {
@@ -133,11 +133,13 @@ st.markdown("""
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
-   # Bikin 3 kolom biar fotonya ada di tengah
-    col_img1, col_img2, col_img3 = st.columns([2, 1, 2])
-    with col_img2:
-        # Masukin link web gambarnya langsung di dalam tanda kutip
-        st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVP01C668V6V-byKMHOFTHCgHmAVZ5nZbeNXF2kOXAfA&s=10", use_container_width=True)
+    # --- MENAMBAHKAN FOTO/LOGO DI TENGAH ---
+    # Lu bisa ganti link gambar di atribut src="..." di bawah ini sama link foto/logo lu sendiri
+    st.markdown("""
+        <div style='text-align: center;'>
+            <img src='https://cdn-icons-png.flaticon.com/512/854/854878.png' width='120' style='margin-bottom: -10px;'>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.title("Geodata Extractor Pro")
     st.markdown("<p style='text-align:center;'>Ubah kumpulan file KMZ/KML lu menjadi tabel Excel secara otomatis. Support Batch Processing.</p>", unsafe_allow_html=True)
